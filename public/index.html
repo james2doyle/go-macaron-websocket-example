@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Websocket</title>
+</head>
+<body>
+  <h1>Hello</h1>
+  <ul id="messages"></ul>
+  <form accept-charset="utf-8" id="form" autocomplete="off">
+    <input type="text" name="message" id="message" placeholder="Your Message">
+    <input type="submit" name="submit" value="send">
+  </form>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const webSocket = new WebSocket("ws://localhost:4000/ws");
+      const form = document.getElementById('form');
+      webSocket.onopen = function () {
+        const username = Date.now().toString();
+        webSocket.send(JSON.stringify({
+            user: username,
+            message: `${Date.now()} has connected`
+          }));
+        form.onsubmit = function(e) {
+          e.preventDefault();
+          const msg = {
+            user: username,
+            message: username + ': ' + document.getElementById('message').value
+          };
+
+          // Send the msg object as a JSON-formatted string.
+          webSocket.send(JSON.stringify(msg));
+          form.reset();
+          return false;
+        };
+      };
+      webSocket.onmessage = function (event) {
+        const msg = JSON.parse(event.data);
+        document.getElementById('messages').innerHTML += `<li>${msg.message}</li>`;
+      };
+    });
+  </script>
+</body>
+</html>
