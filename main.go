@@ -1,11 +1,13 @@
 package main
 
 import (
+  "fmt"
   "log"
   "net/http"
   "time"
 
   "github.com/go-macaron/gzip"
+  "github.com/go-macaron/session"
   "github.com/go-macaron/sockets"
   "github.com/gorilla/websocket"
   "gopkg.in/macaron.v1"
@@ -36,11 +38,13 @@ func main() {
   m.Use(macaron.Renderer())
   // gzip responses
   m.Use(gzip.Gziper())
+  // sessions for usernames
+  m.Use(session.Sessioner())
 
   // collect all the channels that need to be notified
   senders := make(map[string]chan<- *eventMessage)
 
-  m.Get("/ws", sockets.JSON(eventMessage{}), func(receiver <-chan *eventMessage, sender chan<- *eventMessage, done <-chan bool, disconnect chan<- int, errorChannel <-chan error, ctx *macaron.Context) {
+  m.Get("/ws", sockets.JSON(eventMessage{}), func(sess session.Store, receiver <-chan *eventMessage, sender chan<- *eventMessage, done <-chan bool, disconnect chan<- int, errorChannel <-chan error, ctx *macaron.Context) {
     // count down 30 minutes for disconnect
     ticker := time.After(30 * time.Minute)
     for {
@@ -50,6 +54,7 @@ func main() {
         // In your app, collect the senders of different clients and do something useful with them
         // sender <- msg
         if senders[msg.User] == nil {
+          sess.Set("username", msg.User)
           senders[msg.User] = sender
         }
         // range over the connections and send the message out to each one
@@ -63,6 +68,19 @@ func main() {
         disconnect <- websocket.CloseNormalClosure
       case <-done:
         // the client disconnected, so you should return / break if the done channel gets sent a message
+        username := sess.Get("username").(string)
+        sess.Delete("username")
+        message := fmt.Sprintf("User %s has disconnected", username)
+        log.Println(message)
+        // dont try to send anything to this user anymore
+        delete(senders, username)
+        goneMessage := eventMessage{
+          User:    username,
+          Message: message,
+        }
+        for k := range senders {
+          senders[k] <- &goneMessage
+        }
         return
       case err := <-errorChannel:
         // Uh oh, we received an error. This will happen before a close if the client did not disconnect regularly.

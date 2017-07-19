@@ -18,7 +18,7 @@
         const username = Date.now().toString();
         webSocket.send(JSON.stringify({
             user: username,
-            message: `${Date.now()} has connected`
+            message: `User ${Date.now()} has connected`
           }));
         form.onsubmit = function(e) {
           e.preventDefault();
