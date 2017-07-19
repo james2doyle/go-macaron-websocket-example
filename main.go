@@ -38,7 +38,7 @@ func main() {
   m.Use(macaron.Renderer())
   // gzip responses
   m.Use(gzip.Gziper())
-  // sessions for usernames
+  // sessions for the data to use
   m.Use(session.Sessioner())
 
   // collect all the channels that need to be notified
@@ -51,8 +51,7 @@ func main() {
       select {
       case msg := <-receiver:
         // here we simply echo the received message to the sender for demonstration purposes
-        // In your app, collect the senders of different clients and do something useful with them
-        // sender <- msg
+        // We collect the senders of different clients and setup sessions for them
         if senders[msg.User] == nil {
           sess.Set("username", msg.User)
           senders[msg.User] = sender
@@ -67,13 +66,15 @@ func main() {
         // You can use close codes according to RFC 6455
         disconnect <- websocket.CloseNormalClosure
       case <-done:
-        // the client disconnected, so you should return / break if the done channel gets sent a message
+        // the client disconnected, so do some cleanup and send a message to everyone
         username := sess.Get("username").(string)
+        // delete the session for now
         sess.Delete("username")
         message := fmt.Sprintf("User %s has disconnected", username)
         log.Println(message)
         // dont try to send anything to this user anymore
         delete(senders, username)
+        // setup a message to send everyone
         goneMessage := eventMessage{
           User:    username,
           Message: message,
