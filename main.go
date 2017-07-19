@@ -6,6 +6,7 @@ import (
   "net/http"
   "time"
 
+  "github.com/go-macaron/binding"
   "github.com/go-macaron/gzip"
   "github.com/go-macaron/session"
   "github.com/go-macaron/sockets"
@@ -43,6 +44,13 @@ func main() {
 
   // collect all the channels that need to be notified
   senders := make(map[string]chan<- *eventMessage)
+
+  m.Post("/webhook", binding.Bind(eventMessage{}), func(message eventMessage, ctx *macaron.Context) {
+    for k := range senders {
+      senders[k] <- &message
+    }
+    ctx.JSON(200, &message)
+  })
 
   m.Get("/ws", sockets.JSON(eventMessage{}), func(sess session.Store, receiver <-chan *eventMessage, sender chan<- *eventMessage, done <-chan bool, disconnect chan<- int, errorChannel <-chan error, ctx *macaron.Context) {
     // count down 30 minutes for disconnect
