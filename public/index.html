@@ -18,10 +18,11 @@
       webSocket.onopen = function () {
         const username = Date.now().toString();
         uel.innerHTML = username;
+        // send the first message automatically after connecting to setup the session
         webSocket.send(JSON.stringify({
-            user: username,
-            message: `User ${Date.now()} has connected`
-          }));
+          user: username,
+          message: `User ${Date.now()} has connected`
+        }));
         form.onsubmit = function(e) {
           e.preventDefault();
           const msg = {
@@ -35,6 +36,8 @@
           return false;
         };
       };
+
+      // show messages from others
       webSocket.onmessage = function (event) {
         const msg = JSON.parse(event.data);
         document.getElementById('messages').innerHTML += `<li>${msg.message}</li>`;
