@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Websocket</title>
+  <title>WebSocket</title>
 </head>
 <body>
-  <h1>Hello</h1>
+  <h1>Hello user #<em id="username"></em></h1>
   <ul id="messages"></ul>
   <form accept-charset="utf-8" id="form" autocomplete="off">
     <input type="text" name="message" id="message" placeholder="Your Message">
@@ -14,8 +14,10 @@
     document.addEventListener('DOMContentLoaded', function() {
       const webSocket = new WebSocket("ws://localhost:4000/ws");
       const form = document.getElementById('form');
+      const uel = document.getElementById('username');
       webSocket.onopen = function () {
         const username = Date.now().toString();
+        uel.innerHTML = username;
         webSocket.send(JSON.stringify({
             user: username,
             message: `User ${Date.now()} has connected`
